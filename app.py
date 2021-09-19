@@ -176,4 +176,4 @@ def update_state_time(value,n):
 ADDRESS="10.84.146.29"
 PORT=8031
 
-app.run_server(debug+True,host=ADDRESS, port=PORT)
+app.run_server(debug=True,host=ADDRESS, port=PORT)
