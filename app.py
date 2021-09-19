@@ -1,5 +1,4 @@
-#from jupyter_dash import JupyterDash  # pip install dash
-import dash
+import dash  # pip install dash
 import dash_html_components as html
 import dash_core_components as dcc
 import dash_bootstrap_components as dbc
@@ -23,6 +22,12 @@ abbr.columns = ["state","location"]
 
 #for the county-level state vaccination percentages
 us = pd.read_csv("https://raw.githubusercontent.com/xroopnar/DSW2021/main/data/us_vaccine_9month.csv",index_col=0,dtype={"FIPS":str})
+
+#for county barplot
+us["Under 65"] = us["Series_Complete_Yes"]-us["Series_Complete_65Plus"]
+us["Over 65"] = us["Series_Complete_65Plus"]
+us = us[us.Recip_County!="Unknown County"]
+
 #use cdc api 
 
 
@@ -56,6 +61,9 @@ app.layout = dbc.Container([
              dbc.Col([dcc.Graph(id="ok-map")],width=8),
              dbc.Col([dcc.Graph(id="state-bar")])
     ]),
+        dbc.Row([
+             dbc.Col([dcc.Graph(id="county-bar")])
+             ]),
     dbc.Row([
              dbc.Col([
         dcc.RadioItems(id="pop-radio",
@@ -109,8 +117,24 @@ app.layout = dbc.Container([
     )
     #dcc.Graph(id="state-bar")
     ])
-    ]),
+    ])
 ])
+
+@app.callback(Output("county-bar","figure"),
+              Input("ok-date","value"),
+              Input("state-map-dropdown","value"))
+def update_barplot(date,state):
+  toplot = us[(us.Date==date) & (us.Recip_State==state)]
+  if toplot.shape[0]>25:
+    toplot = toplot.sort_values(by="Series_Complete_Yes",ascending=False).head(25)
+  fig = px.bar(toplot.sort_values(by="Series_Complete_Yes",ascending=False),
+       y="Recip_County",x=["Under 65","Over 65"],orientation="h",
+       labels={"under65":"Under 65","variable":"Age","Series_Complete_Pop_Pct":'Total % Vaccinated',"Series_Complete_12PlusPop_Pct":'%',"Series_Complete_18PlusPop_Pct":'%',"Series_Complete_65PlusPop_Pct":'%',"Recip_County":"County","Recip_State":"State"},
+       hover_data={"FIPS":False,"Recip_County":False,"Recip_State":True,"Series_Complete_Pop_Pct":True,"value":False,"variable":False}
+       ).update_yaxes(categoryorder="total ascending")
+  fig.update_layout(margin={"r":0,"t":0,"l":0,"b":0},xaxis_title="Top Countines by Total Vaccination Rate",transition_duration=500)
+
+  return(fig)
 
 @app.callback(Output('ok-map', 'figure'),
               #Input('ok-dropdown', 'value'),
@@ -142,14 +166,14 @@ def update_us_map(value,date,state):
               #Input("state-count-dropdown","value"))
 def update_state_time(value,n):
   #n=10
-  #print("n:",n)
+  print("n:",n)
   df = us[us.Recip_State==value].sort_values(by="Date",ascending=True)
   df = df[df.Recip_County.isin(df.Recip_County.unique()[0:n])]
   fig = px.line(df,x="Date",y="Series_Complete_Pop_Pct",line_group="Recip_County",color="Recip_County")
   fig.update_layout(margin={"r":0,"t":0,"l":0,"b":0},transition_duration=500)
   return(fig)
 
+ADDRESS=10.84.146.29
+PORT=8031
 
-ADDRESS = "10.84.146.29"
-PORT = 8030
-app.run_server(debug=True, host=ADDRESS, port=PORT)
+app.run_server(debug+True,host=ADDRESS, port=PORT)
