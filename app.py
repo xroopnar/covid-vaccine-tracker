@@ -173,7 +173,7 @@ def update_state_time(value,n):
   fig.update_layout(margin={"r":0,"t":0,"l":0,"b":0},transition_duration=500)
   return(fig)
 
-ADDRESS=10.84.146.29
+ADDRESS="10.84.146.29"
 PORT=8031
 
 app.run_server(debug+True,host=ADDRESS, port=PORT)
